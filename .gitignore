@@ -1,7 +1,3 @@
-# Игнорируем картинки
-{9A83D7C8-DECB-4BC0-8BCE-76548748F8B0}.png
-{AEAE280B-239E-46AE-A12C-5BC5C9F6B507}.png
-
 # Игнорируем кеши Python
 __pycache__/
 *.py[cod]
