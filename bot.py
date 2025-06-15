@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 from ai import MistralAI
 from db import db
 
+MALE_ROLE_ID = 1376499305698951269
+FEMALE_ROLE_ID = 1376499296370950164
+
 load_dotenv()
 
 intents = discord.Intents.all()
@@ -25,10 +28,7 @@ async def on_ready():
 async def on_thread_create(thread):
     if thread.parent_id != FORUM_CHANNEL_ID:
         return
-    thread_histories[thread.id] = [{
-        "role": "system",
-        "content": "Ты полезный ассистент, отвечай кратко и по делу."
-    }]
+    thread_histories[thread.id] = []
 
 @client.event
 async def on_message(message):
@@ -39,30 +39,37 @@ async def on_message(message):
         thread_id = message.channel.id
 
         if thread_id not in thread_histories:
-            thread_histories[thread_id] = [{
-                "role": "system",
-                "content": "Ты полезный ассистент, отвечай кратко и по делу."
-            }]
+            thread_histories[thread_id] = []
 
         thread_histories[thread_id].append({
             "role": "user",
             "content": message.content
         })
 
+        roles = [role.id for role in message.author.roles]
+        gender = "male" if MALE_ROLE_ID in roles else "female" if FEMALE_ROLE_ID in roles else "unknown"
+
         try:
-            # Используем асинхронный метод из класса
-            reply = await mistral.get_response(thread_histories[thread_id])
+            reply = await mistral.get_response(thread_histories[thread_id], gender=gender)
 
             thread_histories[thread_id].append({
                 "role": "assistant",
                 "content": reply
             })
 
-            # Ограничиваем историю
-            if len(thread_histories[thread_id]) > 10:
-                thread_histories[thread_id] = [thread_histories[thread_id][0]] + thread_histories[thread_id][-9:]
+            def is_code(text: str) -> bool:
+                code_keywords = ["def ", "print(", "input(", "import ", "class ", "for ", "while ", "if ", "elif ", "else:"]
+                return any(kw in text for kw in code_keywords)
 
-            await message.channel.send(reply)
+            # Автоопределение — код или нет
+            if is_code(reply):
+                await message.channel.send(f"```python\n{reply}```")
+            else:
+                if gender == "male":
+                    ansi_reply = f"\u001b[2;35m{reply}\u001b[0m"
+                    await message.channel.send(f"```ansi\n{ansi_reply}```")
+                else:
+                    await message.channel.send(f"```fix\n{reply}```")
 
         except Exception as e:
             print(f"Ошибка при обращении к Mistral: {e}")

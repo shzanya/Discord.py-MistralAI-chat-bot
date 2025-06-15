@@ -8,7 +8,7 @@ class ShardedDatabase:
         self.shard_count = shard_count
         self.connections = {}
         
-        # Инициализация соединений для каждого шарда
+        
         for shard_id in range(shard_count):
             self.connections[shard_id] = mysql.connector.connect(
                 host=os.getenv(f'MYSQL_HOST_{shard_id}', 'localhost'),
@@ -48,7 +48,7 @@ class ShardedDatabase:
         cursor.close()
         
         if messages:
-            messages.reverse()  # Сначала старые сообщения
+            messages.reverse()  
         return messages or []
 
     def init_db(self):
@@ -57,7 +57,7 @@ class ShardedDatabase:
             connection = self.connections[shard_id]
             cursor = connection.cursor()
             
-            # Создание таблицы messages если не существует
+            
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -68,7 +68,7 @@ class ShardedDatabase:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )""")
             
-            # Создание индекса если не существует
+            
             cursor.execute("""
                 SELECT COUNT(*) 
                 FROM INFORMATION_SCHEMA.STATISTICS 
@@ -81,5 +81,5 @@ class ShardedDatabase:
             connection.commit()
             cursor.close()
 
-# Создаем глобальный экземпляр базы данных
+
 db = ShardedDatabase()
